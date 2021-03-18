@@ -1,0 +1,7 @@
+/pkg
+/pkg.tgz
+node_modules/
+yarn-error.log
+.vscode/
+DEBUG-*
+.yarn/*

@@ -1,0 +1,24 @@
+{
+	"name": "shure-scm820",
+	"version": "2.2.0",
+	"main": "src/index.js",
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format": "prettier --write ."
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/bitfocus/companion-module-shure-scm820.git"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"@companion-module/base": "~1.10.0",
+		"pngjs": "~7.0.0"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "~2.0.0",
+		"prettier": "^3.0.0"
+	},
+	"prettier": "@companion-module/tools/.prettierrc.json"
+}
