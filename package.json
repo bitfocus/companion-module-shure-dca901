@@ -1,27 +1,25 @@
 {
-	"name": "your-module-name",
-	"version": "0.1.0",
-	"main": "main.js",
+	"name": "shure-dca901",
+	"version": "1.0.0",
+	"main": "src/index.js",
+	"type": "module",
 	"scripts": {
-		"format": "prettier -w .",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format": "prettier --write .",
 		"package": "companion-module-build"
 	},
-	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-your-module-name.git"
+		"url": "git+https://github.com/bitfocus/companion-module-shure-dca901.git"
 	},
-	"engines": {
-		"node": "^22.20",
-		"yarn": "^4"
-	},
+	"license": "MIT",
 	"dependencies": {
-		"@companion-module/base": "~1.12.1"
+		"@companion-module/base": "~1.10.0",
+		"pngjs": "~7.0.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.6.1",
-		"prettier": "^3.6.2"
+		"@companion-module/tools": "~2.0.0",
+		"prettier": "^3.7.3"
 	},
-	"prettier": "@companion-module/tools/.prettierrc.json",
-	"packageManager": "yarn@4.10.3"
+	"prettier": "@companion-module/tools/.prettierrc.json"
 }

@@ -1,26 +1,36 @@
 {
-	"id": "your-module-name",
-	"name": "your-module-name",
-	"shortname": "module-shortname",
-	"description": "A short one line description of your module",
+	"id": "shure-dca901",
+	"name": "shure-dca901",
+	"shortname": "shure-dca901",
+	"description": "",
 	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "git+https://github.com/bitfocus/companion-module-your-module-name.git",
-	"bugs": "https://github.com/bitfocus/companion-module-your-module-name/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-shure-dca901.git",
+	"bugs": "https://github.com/bitfocus/companion-module-shure-dca901/issues",
 	"maintainers": [
 		{
-			"name": "Your name",
-			"email": "Your email"
+			"name": "Peter Newman"
 		}
 	],
+	"legacyIds": [],
 	"runtime": {
-		"type": "node22",
+		"type": "node18",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
-		"entrypoint": "../main.js"
+		"entrypoint": "../src/index.js"
 	},
-	"legacyIds": [],
-	"manufacturer": "Your company",
-	"products": ["Your product"],
-	"keywords": []
+	"manufacturer": "Shure",
+	"products": ["DCA901"],
+	"keywords": ["Mixer"],
+	"bonjourQueries": {
+		"bonjour_host": [
+			{
+				"type": "shure",
+				"protocol": "udp",
+				"txt": {
+					"model": "_000000000000003f"
+				}
+			}
+		]
+	}
 }

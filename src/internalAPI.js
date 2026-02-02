@@ -1,0 +1,888 @@
+import Icons from './icons.js'
+
+const DEFAULT_LABELS = {
+	1: 'Channel 1',
+	2: 'Channel 2',
+	3: 'Channel 3',
+	4: 'Channel 4',
+	5: 'Channel 5',
+	6: 'Channel 6',
+	7: 'Channel 7',
+	8: 'Channel 8',
+	9: 'Automix Out Mono',
+	10: 'Direct Out 1',
+	11: 'Direct Out 2',
+	12: 'Direct Out 3',
+	13: 'Direct Out 4',
+	14: 'Direct Out 5',
+	15: 'Direct Out 6',
+	16: 'Direct Out 7',
+	17: 'Direct Out 8',
+	18: 'Mix A',
+	19: 'Mix B',
+}
+
+const DEFAULT_PRESET_LABELS = {
+	1: 'Preset 1 (EMPTY)',
+	2: 'Preset 2 (EMPTY)',
+	3: 'Preset 3 (EMPTY)',
+	4: 'Preset 4 (EMPTY)',
+	5: 'Preset 5 (EMPTY)',
+	6: 'Preset 6 (EMPTY)',
+	7: 'Preset 7 (EMPTY)',
+	8: 'Preset 8 (EMPTY)',
+	9: '7ch Fan Out',
+	10: '5.1 SMPTE',
+}
+
+/**
+ * Companion instance API class for Shure DCA901.
+ * Utilized to track the state of the mixer and channels.
+ *
+ * @since 1.0.0
+ * @author Keith Rocheck <keith.rocheck@gmail.com>
+ */
+export default class Dca901Api {
+	/**
+	 * Create an instance of a Shure API module.
+	 *
+	 * @param {instance} instance - the parent instance
+	 * @since 1.0.0
+	 */
+	constructor(instance) {
+		this.instance = instance
+
+		this.icons = new Icons(instance)
+
+		this.mixer = {
+			firmwareVersion: '', // FW_VER
+			deviceId: '', // DEVICE_NAME 31 (GS)
+			audioDeviceName: '', // NA_DEVICE_NAME 32 (GS)
+			serialNumber: '', // SERIAL_NUM 31 (GS)
+			flash: 'OFF', // FLASH ON|OFF (S)
+			model: '', // MODEL 32
+			preset: '', // PRESET
+			controlMacAddress: '', // CONTROL_MAC_ADDRESS 17
+			primaryAudioIp: '', // IP_ADDR_NET_AUDIO_PRIMARY
+			primaryAudioSubnet: '', // IP_SUBNET_NET_AUDIO_PRIMARY
+			primaryAudioGateway: '', // IP_GATEWAY_NET_AUDIO_PRIMARY
+			autoLinkMode: 'Unknown', // AUTO_LINK_MODE ON|OFF (GS)
+			meterRate: 0, // METER_RATE 0=disabled, 100+ms (GS)
+			meterRatePreComp: 0, // METER_RATE_PRECOMP 0=disabled, 100+ms (GS)
+			meterRatePostGate: 0, // METER_RATE_POSTGATE 0=disabled, 100+ms (GS)
+			meterRateMixerGain: 0, // METER_RATE_MXR_GAIN 0=disabled, 100+ms (GS)
+			encryption: 'OFF', // ENCRYPTION
+			muteStatusLedState: 'OFF', // DEV_MUTE_STATUS_LED_STATE ON|OFF
+			ledBrightness: 100, // LED_BRIGHTNESS 0=disabled, 1-5 20-100%
+			ledColorMuted: 'RED', // LED_COLOR_MUTED
+			ledColorUnmuted: 'GREEN', // LED_COLOR_UNMUTED
+			ledStateMuted: 'ON', // LED_STATE_MUTED ON|FLASHING|OFF
+			ledStateUnmuted: 'ON', // LED_STATE_UNMUTED ON|FLASHING|OFF
+			muteStatusLedState: 'ON', // DEV_MUTE_STATUS_LED_STATE ON|OFF
+			ledInState: 'ON', // DEV_LED_IN_STATE ON|OFF
+			bypassAllEq: 'OFF', // BYPASS_ALL_EQ
+			eqContour: 'OFF', // EQ_CONTOUR < REP EQ_CONTOUR  > or OFF? // TODO(Peter): Handle a space for a variable
+			numActiveMics: 0, // NUM_ACTIVE_MICS
+		}
+
+		this.presets = []
+		this.channels = []
+		this.dfrs = []
+	}
+
+	/**
+	 * Returns the desired preset state object.
+	 *
+	 * @param {number} id - the preset to fetch
+	 * @returns {Object} the desired preset object
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getPreset(id) {
+		if (this.presets[id] === undefined) {
+			this.presets[id] = {
+				prefix: `preset_${id}`,
+				name: DEFAULT_PRESET_LABELS[id], // PRESET_NAME 31 (GS)
+			}
+		}
+
+		return this.presets[id]
+	}
+
+	/**
+	 * Returns the desired channel state object.
+	 *
+	 * @param {number} id - the channel to fetch
+	 * @returns {Object} the desired channel object
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getChannel(id) {
+		if (this.channels[id] === undefined) {
+			this.channels[id] = {
+				prefix: id >= 1 && id <= 8 ? `in_${id}` : `out_${id - 8}`,
+				name: DEFAULT_LABELS[id], // CHAN_NAME 31 (GS)
+				audioName: DEFAULT_LABELS[id], // NA_CHAN_NAME 31 (GS)
+				audioGain: 0, // AUDIO_GAIN_HI_RES 0-1280, -1100 (-inf - +18 dB)
+				audioGain2: '+0 dB', // Text representation of audioGain
+				audioGainPostGate: 0, // AUDIO_GAIN_POSTGATE 0-1280, -1100 (-inf - +18 dB)
+				audioGainPostGate2: '+0 dB', // Text representation of audioGainPostGate
+				audioMute: 'OFF', // AUDIO_MUTE ON|OFF|TOGGLE (GS)
+				audioMutePostGate: 'OFF', // AUDIO_MUTE_POSTGATE ON|OFF|TOGGLE (GS)
+				alwaysOnA: 'Unknown', // ALWAYS_ON_ENABLE_A ON|OFF|TOGGLE (GS)
+				alwaysOnB: 'Unknown', // ALWAYS_ON_ENABLE_B ON|OFF|TOGGLE (GS)
+				intellimixMode: 'Unknown', // INTELLIMIX_MODE CLASSIC|SMOOTH|EXTREME|CUSTOM|MANUAL|CUSTOM_PRESET (GS)
+				audioGateA: 'OFF', // INPUT_AUDIO_GATE_A ON|OFF (G)
+				audioGateB: 'OFF', // INPUT_AUDIO_GATE_B ON|OFF (G)
+				limiterEngaged: 'OFF', // LIMITER_ENGAGED ON|OFF (G)
+				audioClip: 'OFF', // AUDIO_IN_CLIP_INDICATOR|AUDIO_OUT_CLIP_INDICATOR ON|OFF (G)
+				audioLevel: 0, // SAMPLE 0-60, -60 dB
+				audioLevelPreComp: 0, // SAMPLE_PRECOMP 0-60, -60 dB
+				audioLevelPostGate: 0, // SAMPLE_POSTGATE 0-60, -60 dB
+				audioLevelMixerGain: 0, // SAMPLE_MXR_GAIN 0-60, -60 dB
+				audioLevelRms: 0, // AUDIO_IN_RMS_LVL 0-60, -60 dB
+				audioLevelPeak: 0, // AUDIO_IN_PEAK_LVL 0-60, -60 dB
+				audioBitmap: 0, // AUDIO_LEVEL (derived) 0-7, 10-17 w/clip
+				audioBitmapPreComp: 0, // SAMPLE_PRECOMP 0-60, -60 dB
+				audioBitmapPostGate: 0, // SAMPLE_POSTGATE 0-60, -60 dB
+				audioBitmapMixerGain: 0, // SAMPLE_MXR_GAIN 0-60, -60 dB
+				automixGateOutExtSig: 'OFF', // AUTOMIX_GATE_OUT_EXT_SIG ON|OFF|TOGGLE(?) - Always on
+				beamWidth: 0, // BEAM_W NARROW|MEDIUM|WIDE
+				beamX: 0, // BEAM_X 0-3048, -1524 cm
+				beamY: 0, // BEAM_Y 0-3048, -1524 cm
+				beamZ: 0, // BEAM_Z 0-914 cm
+				beamXAf: 0, // BEAM_X_AF 0-3048, -1524 cm
+				beamYAf: 0, // BEAM_Y_AF 0-3048, -1524 cm
+				beamZAf: 0, // BEAM_Z_AF 0-914 cm
+				parametricEq: [], // PEQ
+			}
+		}
+
+		return this.channels[id]
+	}
+
+	/**
+	 * Returns the desired channel parametric EQ state object.
+	 *
+	 * @param {number} channel - the channel to fetch
+	 * @param {number} id - the parametric EQ to fetch
+	 * @returns {Object} the desired channel parametric EQ object
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getChannelParametricEq(channel, id) {
+		let ch = this.getChannel(channel)
+
+		if (ch.parametricEq[id] === undefined) {
+			this.channels[channel].parametricEq[id] = {
+				prefix: `parametric_eq_${id}`,
+				state: 'Unknown', // PEQ ON|OFF (GS)
+			}
+		}
+
+		return this.channels[channel].parametricEq[id]
+	}
+
+	/**
+	 * Returns the desired channel status icon.
+	 *
+	 * @param {number} id - the channel to fetch
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getChannelIcon(id, image) {
+		let chIn = this.getChannel(id)
+		let chOut = this.getChannel(id + 9)
+		let audioIn, audioOut, aOn, bOn, mute, dfr
+
+		audioIn = chIn.audioBitmap
+		audioOut = id == 9 ? null : chOut.audioBitmap
+		aOn = id == 9 ? null : chIn.audioGateA // == 'OFF' ? 'ON' : 'OFF'
+		bOn = id == 9 ? null : chIn.audioGateB // == 'OFF' ? 'ON' : 'OFF'
+		mute = chIn.audioMute
+		dfr = id == 9 ? null : this.getDfr(1).assignedChan == id ? 1 : this.getDfr(2).assignedChan == id ? 2 : 0
+
+		return this.icons.getChannelStatus(image, audioIn, audioOut, aOn, bOn, mute, dfr)
+	}
+
+	/**
+	 * Returns the desired dfr state object.
+	 *
+	 * @param {number} id - the dfr to fetch
+	 * @returns {Object} the desired dfr object
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getDfr(id) {
+		if (this.dfrs[id] === undefined) {
+			this.dfrs[id] = {
+				assignedChan: 20, // DFRx_ASSIGNED_CHAN 1-8, 18-19, 20=unassigned (GS)
+				bypass: 'Unknown', //DFRx_BYPASS ON|OFF (GS)
+				//DFRx_CLEAR_ALL_FILTERS ON (S)
+				freeze: 'Unknown', //DFRx_FREEZE ON|OFF (GS)
+			}
+		}
+
+		return this.dfrs[id]
+	}
+
+	/**
+	 * Returns the input levels icon.
+	 *
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getInputLevelsIcon(image) {
+		return this.icons.getInputLevels(
+			image,
+			this.getChannel(1).audioBitmap,
+			this.getChannel(2).audioBitmap,
+			this.getChannel(3).audioBitmap,
+			this.getChannel(4).audioBitmap,
+			this.getChannel(5).audioBitmap,
+			this.getChannel(6).audioBitmap,
+			this.getChannel(7).audioBitmap,
+			this.getChannel(8).audioBitmap,
+		)
+	}
+
+	/**
+	 * Returns the input levels post gate icon.
+	 *
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getInputLevelsPostGateIcon(image) {
+		return this.icons.getInputLevels(
+			image,
+			this.getChannel(1).audioBitmapPostGate,
+			this.getChannel(2).audioBitmapPostGate,
+			this.getChannel(3).audioBitmapPostGate,
+			this.getChannel(4).audioBitmapPostGate,
+			this.getChannel(5).audioBitmapPostGate,
+			this.getChannel(6).audioBitmapPostGate,
+			this.getChannel(7).audioBitmapPostGate,
+			this.getChannel(8).audioBitmapPostGate,
+		)
+	}
+
+	/**
+	 * Returns the mixer gain icon.
+	 *
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getMixerGainIcon(image) {
+		return this.icons.getMixerGain(
+			image,
+			this.getChannel(1).audioBitmapMixerGain,
+			this.getChannel(2).audioBitmapMixerGain,
+			this.getChannel(3).audioBitmapMixerGain,
+			this.getChannel(4).audioBitmapMixerGain,
+			this.getChannel(5).audioBitmapMixerGain,
+			this.getChannel(6).audioBitmapMixerGain,
+			this.getChannel(7).audioBitmapMixerGain,
+			this.getChannel(8).audioBitmapMixerGain,
+		)
+	}
+
+	/**
+	 * Return the audio bitmap index
+	 *
+	 * @param {number} audioLevel - the level in dB
+	 * @param {string} clip - clip ON|OFF
+	 * @returns {number} the bitmap index
+	 */
+	getLevelBitmap(audioLevel, clip) {
+		let out
+
+		if (audioLevel >= -6) {
+			out = 17
+		} else if (audioLevel >= -9) {
+			out = 7
+		} else if (audioLevel >= -12) {
+			out = 6
+		} else if (audioLevel >= -18) {
+			out = 5
+		} else if (audioLevel >= -24) {
+			out = 4
+		} else if (audioLevel >= -36) {
+			out = 3
+		} else if (audioLevel >= -48) {
+			out = 2
+		} else if (audioLevel >= -60) {
+			out = 1
+		} else {
+			out = 0
+		}
+
+		if (clip == 'ON' && out < 10) {
+			out += 10
+		}
+
+		return out
+	}
+
+	/**
+	 * Returns the mixer state object.
+	 *
+	 * @returns {Object} the mixer state object
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getMixer() {
+		return this.mixer
+	}
+
+	/**
+	 * Returns the desired channel status icon.
+	 *
+	 * @param {number} id - the channel to fetch
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getMixerIcon(id, image) {
+		let ch = this.getChannel(id)
+
+		return this.icons.getMixStatus(image, ch.audioBitmap, ch.limiterEngaged, ch.audioMute)
+	}
+
+	/**
+	 * Returns the mixer levels icon.
+	 *
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getMixerLevelsIcon(image) {
+		return this.icons.getMixLevels(
+			image,
+			this.getChannel(18).audioBitmap,
+			this.getChannel(19).audioBitmap,
+			this.getChannel(18).limiterEngaged,
+			this.getChannel(19).limiterEngaged,
+			this.getChannel(18).audioMute,
+			this.getChannel(19).audioMute,
+		)
+	}
+
+	/**
+	 * Returns the output levels icon.
+	 *
+	 * @param {Object} image - the bank configuration
+	 * @returns {String} the icon
+	 * @access public
+	 * @since 1.0.0
+	 */
+	getOutputLevelsIcon(image) {
+		return this.icons.getOutputLevels(
+			image,
+			this.getChannel(9).audioBitmap,
+			this.getChannel(10).audioBitmap,
+			this.getChannel(11).audioBitmap,
+			this.getChannel(12).audioBitmap,
+			this.getChannel(13).audioBitmap,
+			this.getChannel(14).audioBitmap,
+			this.getChannel(15).audioBitmap,
+			this.getChannel(16).audioBitmap,
+		)
+	}
+
+	/**
+	 * Parse sample data.
+	 *
+	 * @param {String} data - the sample data
+	 * @access public
+	 * @since 1.0.0
+	 */
+	parseSample(data) {
+		if (Array.isArray(data)) {
+			if (data.length != 9) {
+				this.instance.log('error', `unexpected SAMPLE length response: ${data.length}`)
+				return undefined
+			}
+			for (let i = 1; i <= data.length; i++) {
+				//this.updateChannel(i + 1, 'AUDIO_LEVEL', data[i])
+				let channel = this.getChannel(i)
+				channel.audioLevel =
+					data[i - 1] === undefined
+						? channel.audioLevel
+						: isNaN(data[i - 1])
+							? channel.audioLevel
+							: parseInt(data[i - 1], 10) - 60
+				channel.audioBitmap = this.getLevelBitmap(channel.audioLevel, channel.audioClip)
+			}
+		}
+		this.instance.checkFeedbacks('input_levels', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+	}
+
+	/**
+	 * Parse sample data post gate
+	 *
+	 * @param {String} data - the sample data post gate
+	 * @access public
+	 * @since 1.0.0
+	 */
+	parseSamplePostGate(data) {
+		if (Array.isArray(data)) {
+			if (data.length != 8) {
+				this.instance.log('error', `unexpected SAMPLE_POSTGATE length response: ${data.length}`)
+				return undefined
+			}
+			for (let i = 1; i <= data.length; i++) {
+				//this.updateChannel(i + 1, 'AUDIO_LEVEL_POSTGATE', data[i])
+				let channel = this.getChannel(i)
+				channel.audioLevelPostGate =
+					data[i - 1] === undefined
+						? channel.audioLevelPostGate
+						: isNaN(data[i - 1])
+							? channel.audioLevelPostGate
+							: parseInt(data[i - 1], 10) - 60
+				channel.audioBitmapPostGate = this.getLevelBitmap(channel.audioLevelPostGate, channel.audioClip)
+			}
+		}
+		this.instance.checkFeedbacks(
+			'input_levels_post_gate',
+			'output_levels',
+			'mixer_levels',
+			'channel_status',
+			'mixer_status',
+		)
+	}
+
+	/**
+	 * Parse sample data mixer gain
+	 *
+	 * @param {String} data - the sample data mixer gain
+	 * @access public
+	 * @since 1.0.0
+	 */
+	parseSampleMixerGain(data) {
+		if (Array.isArray(data)) {
+			if (data.length != 8) {
+				this.instance.log('error', `unexpected SAMPLE_MXR_GAIN length response: ${data.length}`)
+				return undefined
+			}
+			for (let i = 1; i <= data.length; i++) {
+				//this.updateChannel(i + 1, 'AUDIO_LEVEL_MXR_GAIN', data[i])
+				let channel = this.getChannel(i)
+				channel.audioLevelMixerGain =
+					data[i - 1] === undefined
+						? channel.audioLevelMixerGain
+						: isNaN(data[i - 1])
+							? channel.audioLevelMixerGain
+							: parseInt(data[i - 1], 10) - 60
+				channel.audioBitmapMixerGain = this.getLevelBitmap(channel.audioLevelMixerGain, 'OFF')
+			}
+		}
+		this.instance.checkFeedbacks('mixer_gain', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+	}
+
+	/**
+	 * Update a channel property.
+	 *
+	 * @param {number} id - the channel id
+	 * @param {String} key - the command id
+	 * @param {String} value - the new value
+	 * @access public
+	 * @since 1.0.0
+	 */
+	updateChannel(id, key, value) {
+		let channel = this.getChannel(id)
+		let prefix = channel.prefix
+		//let variable
+
+		if (value == 'UNKN' || value == 'UNKNOWN') {
+			value = 'Unknown'
+		}
+
+		if (key.match(/AUDIO_GAIN_POSTGATE/)) {
+			channel.audioGainPostGate = (parseInt(value) - 1100) / 10
+			channel.audioGainPostGate2 =
+				(channel.audioGainPostGate == -110 ? '-INF' : channel.audioGainPostGate.toString()) + ' dB'
+			this.instance.setVariableValues({
+				[`${prefix}_audio_gain_post_gate`]:
+					this.instance.config.variableFormat == 'units' ? channel.audioGainPostGate2 : channel.audioGainPostGate,
+			})
+			this.instance.checkFeedbacks(
+				'input_levels',
+				'output_levels',
+				'mixer_levels',
+				'channel_status',
+				'mixer_status',
+				'audio_gain_post_gate',
+			)
+			this.instance.recordScmAction(
+				'audio_gain_post_gate',
+				{ channel: id, gain: channel.audioGainPostGate },
+				`audio_gain_post_gate ${id}`,
+			)
+			// TODO(Peter): Make this match tighter?
+		} else if (key.match(/AUDIO_GAIN/)) {
+			channel.audioGain = (parseInt(value) - 1100) / 10
+			channel.audioGain2 = (channel.audioGain == -110 ? '-INF' : channel.audioGain.toString()) + ' dB'
+			this.instance.setVariableValues({
+				[`${prefix}_audio_gain`]:
+					this.instance.config.variableFormat == 'units' ? channel.audioGain2 : channel.audioGain,
+			})
+			this.instance.checkFeedbacks(
+				'input_levels',
+				'output_levels',
+				'mixer_levels',
+				'channel_status',
+				'mixer_status',
+				'audio_gain',
+			)
+			this.instance.recordScmAction('audio_gain', { channel: id, gain: channel.audioGain }, `audio_gain ${id}`)
+		} else if (key == 'AUDIO_LEVEL') {
+			channel.audioLevel = parseInt(value) - 60
+			//variable = channel.audioLevel.toString() + (this.instance.config.variableFormat == 'units' ? ' dB' : '')
+			channel.audioBitmap = this.getLevelBitmap(channel.audioLevel, channel.audioClip)
+			this.instance.checkFeedbacks('input_levels', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+		} else if (key == 'AUDIO_IN_RMS_LVL') {
+			channel.audioLevelRms = parseInt(value) - 60
+			// TODO(Peter): Do something useful with this data
+			//variable = channel.audioLevelRms.toString() + (this.instance.config.variableFormat == 'units' ? ' dB' : '')
+			//channel.audioBitmap = this.getLevelBitmap(channel.audioLevel, channel.audioClip)
+			this.instance.checkFeedbacks('input_levels', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+		} else if (key == 'AUDIO_IN_PEAK_LVL') {
+			channel.audioLevelPeak = parseInt(value) - 60
+			// TODO(Peter): Do something useful with this data
+			//variable = channel.audioLevelRms.toString() + (this.instance.config.variableFormat == 'units' ? ' dB' : '')
+			//channel.audioBitmap = this.getLevelBitmap(channel.audioLevel, channel.audioClip)
+			this.instance.checkFeedbacks('input_levels', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+		} else if (key == 'AUDIO_MUTE') {
+			channel.audioMute = value
+			this.instance.setVariableValues({ [`${prefix}_audio_mute`]: value })
+			this.instance.checkFeedbacks('channel_status', 'mixer_status', 'audio_mute')
+			this.instance.recordScmAction('audio_mute', { channel: id, choice: channel.audioMute }, `audio_mute ${id}`)
+		} else if (key == 'AUDIO_MUTE_POSTGATE') {
+			channel.audioMutePostGate = value
+			this.instance.setVariableValues({ [`${prefix}_audio_mute_post_gate`]: value })
+			this.instance.checkFeedbacks('channel_status', 'mixer_status', 'audio_mute_post_gate')
+			this.instance.recordScmAction(
+				'audio_mute_post_gate',
+				{ channel: id, choice: channel.audioMutePostGate },
+				`audio_mute_post_gate ${id}`,
+			)
+		} else if (key == 'ALWAYS_ON_ENABLE_A') {
+			channel.alwaysOnA = value
+			this.instance.setVariableValues({ [`${prefix}_always_on_enable_a`]: value })
+			this.instance.checkFeedbacks('always_on_enable')
+			this.instance.recordScmAction(
+				'always_on_enable',
+				{ channel: id, mix: 'A', choice: channel.alwaysOnA },
+				`always_on_enable A ${id}`,
+			)
+		} else if (key == 'ALWAYS_ON_ENABLE_B') {
+			channel.alwaysOnB = value
+			this.instance.setVariableValues({ [`${prefix}_always_on_enable_b`]: value })
+			this.instance.checkFeedbacks('always_on_enable')
+			this.instance.recordScmAction(
+				'always_on_enable',
+				{ channel: id, mix: 'B', choice: channel.alwaysOnB },
+				`always_on_enable B ${id}`,
+			)
+		} else if (key == 'CHAN_NAME') {
+			channel.name = value.trim()
+			this.instance.setVariableValues({ [`${prefix}_name`]: channel.name })
+			if (this.initDone === true) {
+				this.instance.updateActions()
+				this.instance.updateFeedbacks()
+			}
+			if (id < 10 || id > 17) {
+				// Don't record name changes for direct outs
+				this.instance.recordScmAction('chan_name', { channel: id, name: channel.name }, `chan_name ${id}`)
+			}
+		} else if (key == 'NA_CHAN_NAME') {
+			channel.audioName = value.trim()
+			this.instance.setVariableValues({ [`${prefix}_audio_name`]: channel.audioName })
+			if (this.initDone === true) {
+				this.instance.updateActions()
+				this.instance.updateFeedbacks()
+			}
+			if (id < 10 || id > 17) {
+				// Don't record name changes for direct outs
+				this.instance.recordScmAction(
+					'audio_chan_name',
+					{ channel: id, name: channel.audioName },
+					`audio_chan_name ${id}`,
+				)
+			}
+		} else if (key == 'INTELLIMIX_MODE') {
+			channel.intellimixMode = value
+			this.instance.setVariableValues({ [`${prefix}_intellimix_mode`]: value })
+			this.instance.checkFeedbacks('mixer_status', 'intellimix_mode')
+			this.instance.recordScmAction(
+				'intellimix_mode',
+				{ channel: id, choice: channel.intellimixMode },
+				`intellimix_mode ${id}`,
+			)
+		} else if (key == 'INPUT_AUDIO_GATE_A') {
+			channel.audioGateA = value
+			this.instance.setVariableValues({ [`${prefix}_input_audio_gate_a`]: value })
+		} else if (key == 'INPUT_AUDIO_GATE_B') {
+			channel.audioGateB = value
+			this.instance.setVariableValues({ [`${prefix}_input_audio_gate_b`]: value })
+		} else if (key == 'LIMITER_ENGAGED') {
+			channel.limiterEngaged = value
+			this.instance.setVariableValues({ [`${prefix}_limiter_engaged`]: value })
+			this.instance.checkFeedbacks('mixer_levels', 'mixer_status')
+		} else if (key == 'AUTOMIX_GATE_OUT_EXT_SIG') {
+			channel.automixGateOutExtSig = value
+			this.instance.setVariableValues({ [`${prefix}_automix_gate_out_ext_signal`]: value })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_W') {
+			channel.beamWidth = value
+			this.instance.setVariableValues({ [`${prefix}_beam_width`]: value })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_X') {
+			channel.beamX = (parseInt(value) - 1524) / 100
+			this.instance.setVariableValues({ [`${prefix}_beam_x`]: channel.beamX })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_Y') {
+			channel.beamY = (parseInt(value) - 1524) / 100
+			this.instance.setVariableValues({ [`${prefix}_beam_y`]: channel.beamY })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_Z') {
+			channel.beamZ = parseInt(value) / 100
+			this.instance.setVariableValues({ [`${prefix}_beam_z`]: channel.beamZ })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_X_AF') {
+			channel.beamXAf = (parseInt(value) - 1524) / 100
+			this.instance.setVariableValues({ [`${prefix}_beam_x_af`]: channel.beamXAf })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_Y_AF') {
+			channel.beamYAf = (parseInt(value) - 1524) / 100
+			this.instance.setVariableValues({ [`${prefix}_beam_y_af`]: channel.beamYAf })
+			//this.instance.checkFeedbacks()
+		} else if (key == 'BEAM_Z_AF') {
+			channel.beamZAf = parseInt(value) / 100
+			this.instance.setVariableValues({ [`${prefix}_beam_z_af`]: channel.beamZAf })
+			//this.instance.checkFeedbacks()
+		} else if (key.match(/_CLIP_INDICATOR/)) {
+			channel.audioClip = value
+			// TODO(Peter): Should this update channel.audioBitmap with new clip state?
+			this.instance.setVariableValues({ [`${prefix}_clip_indicator`]: value })
+			this.instance.checkFeedbacks('input_levels', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+		} else {
+			this.instance.log('info', `Unhandled channel command: ${key}`)
+		}
+	}
+
+	/**
+	 * Update a channel parametric EQ property.
+	 *
+	 * @param {number} channel - the channel id
+	 * @param {number} id - the parametric EQ id
+	 * @param {String} key - the command id
+	 * @param {String} value - the new value
+	 * @access public
+	 * @since 1.0.0
+	 */
+	updateChannelParametricEq(channel, id, key, value) {
+		let chPrefix = this.getChannel(channel).prefix
+		let peq = this.getChannelParametricEq(channel, id)
+		let peqPrefix = peq.prefix
+		//let variable
+
+		if (value == 'UNKN' || value == 'UNKNOWN') {
+			value = 'Unknown'
+		}
+
+		if (key == 'PEQ') {
+			peq.state = value.trim()
+			this.instance.setVariableValues({ [`${chPrefix}_${peqPrefix}_state`]: peq.state })
+
+			//this.instance.recordScmAction('preset_name', { preset: id, name: preset.name }, `preset_name ${id}`)
+		} else {
+			this.instance.log('info', `Unhandled channel parametric EQ command: ${key}`)
+		}
+	}
+
+	/**
+	 * Update a preset property.
+	 *
+	 * @param {number} id - the preset id
+	 * @param {String} key - the command id
+	 * @param {String} value - the new value
+	 * @access public
+	 * @since 1.0.0
+	 */
+	updatePreset(id, key, value) {
+		let preset = this.getPreset(id)
+		let prefix = preset.prefix
+		//let variable
+
+		if (value == 'UNKN' || value == 'UNKNOWN') {
+			value = 'Unknown'
+		}
+
+		if (key == 'PRESET_NAME') {
+			preset.name = value.trim()
+			this.instance.setVariableValues({ [`${prefix}_name`]: preset.name })
+			if (this.initDone === true) {
+				this.instance.updateActions()
+				this.instance.updateFeedbacks()
+			}
+			this.instance.recordScmAction('preset_name', { preset: id, name: preset.name }, `preset_name ${id}`)
+		} else {
+			this.instance.log('info', `Unhandled preset command: ${key}`)
+		}
+	}
+
+	/**
+	 * Update a dfr property.
+	 *
+	 * @param {number} id - the dfr id
+	 * @param {String} key - the command id
+	 * @param {String} value - the new value
+	 * @access public
+	 * @since 1.0.0
+	 */
+	updateDfr(id, key, value) {
+		let dfr = this.getDfr(id)
+		let prefix = `dfr${id}_`
+
+		if (value == 'UNKN' || value == 'UNKNOWN') {
+			value = 'Unknown'
+		}
+
+		if (key.match(/_ASSIGNED_CHAN/)) {
+			dfr.assignedChan = parseInt(value)
+			this.instance.setVariableValues({ [`${prefix}assigned_chan`]: dfr.assignedChan })
+			this.instance.checkFeedbacks('dfr_assigned_chan')
+			this.instance.recordScmAction(
+				'dfr_assigned_chan',
+				{ dfr: id, channel: dfr.assignedChan },
+				`dfr_assigned_chan ${id}`,
+			)
+		} else if (key.match(/_BYPASS/)) {
+			dfr.bypass = value
+			this.instance.setVariableValues({ [`${prefix}bypass`]: dfr.bypass })
+			this.instance.checkFeedbacks('dfr_bypass')
+			this.instance.recordScmAction('dfr_bypass', { dfr: id, choice: dfr.bypass }, `dfr_bypass ${id}`)
+		} else if (key.match(/_FREEZE/)) {
+			dfr.freeze = value
+			this.instance.setVariableValues({ [`${prefix}freeze`]: dfr.freeze })
+			this.instance.checkFeedbacks('dfr_freeze')
+			this.instance.recordScmAction('dfr_freeze', { dfr: id, choice: dfr.freeze }, `dfr_freeze ${id}`)
+		}
+	}
+
+	/**
+	 * Update a mixer property.
+	 *
+	 * @param {String} key - the command id
+	 * @param {String} value - the new value
+	 * @access public
+	 * @since 1.0.0
+	 */
+	updateMixer(key, value) {
+		if (value == 'UNKN' || value == 'UNKNOWN') {
+			value = 'Unknown'
+		}
+
+		if (key == 'DEVICE_ID') {
+			this.mixer.deviceId = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ device_id: this.mixer.deviceId })
+		} else if (key == 'MODEL') {
+			this.mixer.model = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ model: this.mixer.model })
+		} else if (key == 'FW_VER') {
+			this.mixer.firmwareVersion = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ firmware_version: this.mixer.firmwareVersion })
+		} else if (key == 'CONTROL_MAC_ADDR') {
+			this.mixer.controlMacAddress = value.trim()
+			this.instance.setVariableValues({ control_mac_address: this.mixer.controlMacAddress })
+		} else if (key == 'NA_DEVICE_NAME') {
+			this.mixer.audioDeviceName = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ audio_device_name: this.mixer.audioDeviceName })
+		} else if (key == 'IP_ADDR_NET_AUDIO_PRIMARY') {
+			this.mixer.primaryAudioIp = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ primary_audio_ip: this.mixer.primaryAudioIp })
+		} else if (key == 'IP_SUBNET_NET_AUDIO_PRIMARY') {
+			this.mixer.primaryAudioSubnet = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ primary_audio_subnet: this.mixer.primaryAudioSubnet })
+		} else if (key == 'IP_GATEWAY_NET_AUDIO_PRIMARY') {
+			this.mixer.primaryAudioGateway = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ primary_audio_gateway: this.mixer.primaryAudioGateway })
+		} else if (key == 'FLASH') {
+			this.mixer.flash = value.replace('{', '').replace('}', '').trim()
+			this.instance.setVariableValues({ flash: this.mixer.flash })
+		} else if (key == 'PRESET') {
+			this.mixer.preset = parseInt(value)
+			this.instance.setVariableValues({ preset: this.mixer.preset })
+		} else if (key == 'AUTO_LINK_MODE') {
+			this.mixer.autoLinkMode = value
+			this.instance.setVariableValues({ auto_link_mode: this.mixer.autoLinkMode })
+			this.instance.checkFeedbacks('auto_link_mode')
+		} else if (key == 'LED_BRIGHTNESS') {
+			this.mixer.ledBrightness = parseInt(value) * 20
+			this.instance.setVariableValues({ led_brightness: this.mixer.ledBrightness })
+		} else if (key == 'LED_COLOR_MUTED') {
+			this.mixer.ledColorMuted = value.trim()
+			this.instance.setVariableValues({ led_color_muted: this.mixer.ledColorMuted })
+		} else if (key == 'LED_COLOR_UNMUTED') {
+			this.mixer.ledColorUnmuted = value.trim()
+			this.instance.setVariableValues({ led_color_unmuted: this.mixer.ledColorUnmuted })
+		} else if (key == 'LED_STATE_MUTED') {
+			this.mixer.ledStateMuted = value.trim()
+			this.instance.setVariableValues({ led_state_muted: this.mixer.ledStateMuted })
+		} else if (key == 'LED_STATE_UNMUTED') {
+			this.mixer.ledStateUnmuted = value.trim()
+			this.instance.setVariableValues({ led_state_unmuted: this.mixer.ledStateUnmuted })
+		} else if (key == 'DEV_MUTE_STATUS_LED_STATE') {
+			this.mixer.muteStatusLedState = value.trim()
+			this.instance.setVariableValues({ mute_status_led_state: this.mixer.muteStatusLedState })
+		} else if (key == 'DEV_LED_IN_STATE') {
+			this.mixer.ledInState = value.trim()
+			this.instance.setVariableValues({ led_in_state: this.mixer.ledInState })
+		} else if (key == 'BYPASS_ALL_EQ') {
+			this.mixer.bypassAllEq = value.trim()
+			this.instance.setVariableValues({ bypass_all_eq: this.mixer.bypassAllEq })
+		} else if (key == 'EQ_CONTOUR') {
+			this.mixer.eqContour = value.trim()
+			this.instance.setVariableValues({ eq_contour: this.mixer.eqContour })
+		} else if (key == 'NUM_ACTIVE_MICS') {
+			this.mixer.numActiveMics = parseInt(value)
+			this.instance.setVariableValues({ num_active_mics: this.mixer.numActiveMics })
+		} else if (key == 'METER_RATE') {
+			this.mixer.meterRate = parseInt(value)
+			this.instance.setVariableValues({
+				meter_rate: this.mixer.meterRate.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+			})
+		} else if (key == 'METER_RATE_PRECOMP') {
+			this.mixer.meterRatePreComp = parseInt(value)
+			this.instance.setVariableValues({
+				meter_rate_pre_comp:
+					this.mixer.meterRatePreComp.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+			})
+		} else if (key == 'METER_RATE_POSTGATE') {
+			this.mixer.meterRatePostGate = parseInt(value)
+			this.instance.setVariableValues({
+				meter_rate_post_gate:
+					this.mixer.meterRatePostGate.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+			})
+		} else if (key == 'METER_RATE_MXR_GAIN') {
+			this.mixer.meterRateMixerGain = parseInt(value)
+			this.instance.setVariableValues({
+				meter_rate_mixer_gain:
+					this.mixer.meterRateMixerGain.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+			})
+		} else {
+			this.instance.log('info', `Unhandled mixer command: ${key}`)
+		}
+	}
+}
