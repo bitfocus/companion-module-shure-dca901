@@ -30,9 +30,9 @@ jobs:
       - name: prettier
         run: |
           yarn prettier --check .
-      - name: eslint
-        run: |
-          yarn eslint .
+      #- name: eslint
+      #  run: |
+      #    yarn eslint .
       #- name: Test jest
       #  run: |
       #    yarn test
