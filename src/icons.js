@@ -272,6 +272,7 @@ export default class Icons {
 	 * @access public
 	 * @since 1.0.0
 	 */
+	// TODO(Peter): Find a better way to illustrate this without the clipping etc...
 	getMixerGain(image, m1, m2, m3, m4, m5, m6, m7, m8) {
 		let out
 
