@@ -23,14 +23,12 @@
 	"products": ["DCA901"],
 	"keywords": ["Mixer"],
 	"bonjourQueries": {
-		"bonjour_host": [
-			{
+		"bonjour_host": {
 				"type": "shure",
 				"protocol": "udp",
 				"txt": {
 					"model": "_000000000000003f"
 				}
-			}
-		]
+		}
 	}
 }
