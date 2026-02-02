@@ -319,7 +319,9 @@ class ShureDca901Instance extends InstanceBase {
 				this.socket.send(cmd)
 
 				this.heartbeatInterval = setInterval(() => {
-					this.socket.send('< GET METER_RATE >\r\n< GET METER_RATE_PRECOMP >\r\n< GET METER_RATE_POSTGATE >\r\n< GET METER_RATE_MXR_GAIN >\r\n')
+					this.socket.send(
+						'< GET METER_RATE >\r\n< GET METER_RATE_PRECOMP >\r\n< GET METER_RATE_POSTGATE >\r\n< GET METER_RATE_MXR_GAIN >\r\n',
+					)
 				}, 30000)
 
 				this.initDone = true

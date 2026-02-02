@@ -14,13 +14,13 @@ export function updateVariables() {
 			i >= 1 && i <= 8
 				? `Channel ${i}`
 				: i == 9
-				? `Automix Out Mono`
-				: i >= 10 && i <= 17
-				? ` Output ${i - 9}`
-				: i == 18
-				? 'Mix A'
-				: 'Mix B'
-				// Automix Mono, Automix Stereo, PFL
+					? `Automix Out Mono`
+					: i >= 10 && i <= 17
+						? ` Output ${i - 9}`
+						: i == 18
+							? 'Mix A'
+							: 'Mix B'
+		// Automix Mono, Automix Stereo, PFL
 
 		variables.push({ variableId: `${prefix}_name`, name: `${label} Name` })
 		variables.push({ variableId: `${prefix}_audio_name`, name: `${label} Network Audio Name` })
@@ -34,7 +34,10 @@ export function updateVariables() {
 			variables.push({ variableId: `${prefix}_always_on_enable_b`, name: `${label} Always On Enable B` })
 			variables.push({ variableId: `${prefix}_input_audio_gate_a`, name: `${label} Input Gate A` })
 			variables.push({ variableId: `${prefix}_input_audio_gate_b`, name: `${label} Input Gate B` })*/
-			variables.push({ variableId: `${prefix}_automix_gate_out_ext_signal`, name: `${label} Automixer Gate Out External Signal` })
+			variables.push({
+				variableId: `${prefix}_automix_gate_out_ext_signal`,
+				name: `${label} Automixer Gate Out External Signal`,
+			})
 			variables.push({ variableId: `${prefix}_beam_width`, name: `${label} Beam Width` })
 			variables.push({ variableId: `${prefix}_beam_x`, name: `${label} Beam X` })
 			variables.push({ variableId: `${prefix}_beam_y`, name: `${label} Beam Y` })

@@ -60,9 +60,9 @@ export default class Image {
 				olda + (1 - olda) * newa,
 				oldr * (1 - alpha) + newr * alpha,
 				oldg * (1 - alpha) + newg * alpha,
-				oldb * (1 - alpha) + newb * alpha
+				oldb * (1 - alpha) + newb * alpha,
 			),
-			byte
+			byte,
 		)
 
 		return true

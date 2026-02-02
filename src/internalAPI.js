@@ -246,7 +246,7 @@ export default class Dca901Api {
 			this.getChannel(5).audioBitmap,
 			this.getChannel(6).audioBitmap,
 			this.getChannel(7).audioBitmap,
-			this.getChannel(8).audioBitmap
+			this.getChannel(8).audioBitmap,
 		)
 	}
 
@@ -268,7 +268,7 @@ export default class Dca901Api {
 			this.getChannel(5).audioBitmapPostGate,
 			this.getChannel(6).audioBitmapPostGate,
 			this.getChannel(7).audioBitmapPostGate,
-			this.getChannel(8).audioBitmapPostGate
+			this.getChannel(8).audioBitmapPostGate,
 		)
 	}
 
@@ -290,7 +290,7 @@ export default class Dca901Api {
 			this.getChannel(5).audioBitmapMixerGain,
 			this.getChannel(6).audioBitmapMixerGain,
 			this.getChannel(7).audioBitmapMixerGain,
-			this.getChannel(8).audioBitmapMixerGain
+			this.getChannel(8).audioBitmapMixerGain,
 		)
 	}
 
@@ -373,7 +373,7 @@ export default class Dca901Api {
 			this.getChannel(18).limiterEngaged,
 			this.getChannel(19).limiterEngaged,
 			this.getChannel(18).audioMute,
-			this.getChannel(19).audioMute
+			this.getChannel(19).audioMute,
 		)
 	}
 
@@ -419,8 +419,8 @@ export default class Dca901Api {
 					data[i - 1] === undefined
 						? channel.audioLevel
 						: isNaN(data[i - 1])
-						? channel.audioLevel
-						: parseInt(data[i - 1], 10) - 60
+							? channel.audioLevel
+							: parseInt(data[i - 1], 10) - 60
 				channel.audioBitmap = this.getLevelBitmap(channel.audioLevel, channel.audioClip)
 			}
 		}
@@ -447,12 +447,18 @@ export default class Dca901Api {
 					data[i - 1] === undefined
 						? channel.audioLevelPostGate
 						: isNaN(data[i - 1])
-						? channel.audioLevelPostGate
-						: parseInt(data[i - 1], 10) - 60
+							? channel.audioLevelPostGate
+							: parseInt(data[i - 1], 10) - 60
 				channel.audioBitmapPostGate = this.getLevelBitmap(channel.audioLevelPostGate, channel.audioClip)
 			}
 		}
-		this.instance.checkFeedbacks('input_levels_post_gate', 'output_levels', 'mixer_levels', 'channel_status', 'mixer_status')
+		this.instance.checkFeedbacks(
+			'input_levels_post_gate',
+			'output_levels',
+			'mixer_levels',
+			'channel_status',
+			'mixer_status',
+		)
 	}
 
 	/**
@@ -475,8 +481,8 @@ export default class Dca901Api {
 					data[i - 1] === undefined
 						? channel.audioLevelMixerGain
 						: isNaN(data[i - 1])
-						? channel.audioLevelMixerGain
-						: parseInt(data[i - 1], 10) - 60
+							? channel.audioLevelMixerGain
+							: parseInt(data[i - 1], 10) - 60
 				channel.audioBitmapMixerGain = this.getLevelBitmap(channel.audioLevelMixerGain, 'OFF')
 			}
 		}
@@ -503,7 +509,8 @@ export default class Dca901Api {
 
 		if (key.match(/AUDIO_GAIN_POSTGATE/)) {
 			channel.audioGainPostGate = (parseInt(value) - 1100) / 10
-			channel.audioGainPostGate2 = (channel.audioGainPostGate == -110 ? '-INF' : channel.audioGainPostGate.toString()) + ' dB'
+			channel.audioGainPostGate2 =
+				(channel.audioGainPostGate == -110 ? '-INF' : channel.audioGainPostGate.toString()) + ' dB'
 			this.instance.setVariableValues({
 				[`${prefix}_audio_gain_post_gate`]:
 					this.instance.config.variableFormat == 'units' ? channel.audioGainPostGate2 : channel.audioGainPostGate,
@@ -514,10 +521,14 @@ export default class Dca901Api {
 				'mixer_levels',
 				'channel_status',
 				'mixer_status',
-				'audio_gain_post_gate'
+				'audio_gain_post_gate',
 			)
-			this.instance.recordScmAction('audio_gain_post_gate', { channel: id, gain: channel.audioGainPostGate }, `audio_gain_post_gate ${id}`)
-		// TODO(Peter): Make this match tighter?
+			this.instance.recordScmAction(
+				'audio_gain_post_gate',
+				{ channel: id, gain: channel.audioGainPostGate },
+				`audio_gain_post_gate ${id}`,
+			)
+			// TODO(Peter): Make this match tighter?
 		} else if (key.match(/AUDIO_GAIN/)) {
 			channel.audioGain = (parseInt(value) - 1100) / 10
 			channel.audioGain2 = (channel.audioGain == -110 ? '-INF' : channel.audioGain.toString()) + ' dB'
@@ -531,7 +542,7 @@ export default class Dca901Api {
 				'mixer_levels',
 				'channel_status',
 				'mixer_status',
-				'audio_gain'
+				'audio_gain',
 			)
 			this.instance.recordScmAction('audio_gain', { channel: id, gain: channel.audioGain }, `audio_gain ${id}`)
 		} else if (key == 'AUDIO_LEVEL') {
@@ -560,7 +571,11 @@ export default class Dca901Api {
 			channel.audioMutePostGate = value
 			this.instance.setVariableValues({ [`${prefix}_audio_mute_post_gate`]: value })
 			this.instance.checkFeedbacks('channel_status', 'mixer_status', 'audio_mute_post_gate')
-			this.instance.recordScmAction('audio_mute_post_gate', { channel: id, choice: channel.audioMutePostGate }, `audio_mute_post_gate ${id}`)
+			this.instance.recordScmAction(
+				'audio_mute_post_gate',
+				{ channel: id, choice: channel.audioMutePostGate },
+				`audio_mute_post_gate ${id}`,
+			)
 		} else if (key == 'ALWAYS_ON_ENABLE_A') {
 			channel.alwaysOnA = value
 			this.instance.setVariableValues({ [`${prefix}_always_on_enable_a`]: value })
@@ -568,7 +583,7 @@ export default class Dca901Api {
 			this.instance.recordScmAction(
 				'always_on_enable',
 				{ channel: id, mix: 'A', choice: channel.alwaysOnA },
-				`always_on_enable A ${id}`
+				`always_on_enable A ${id}`,
 			)
 		} else if (key == 'ALWAYS_ON_ENABLE_B') {
 			channel.alwaysOnB = value
@@ -577,7 +592,7 @@ export default class Dca901Api {
 			this.instance.recordScmAction(
 				'always_on_enable',
 				{ channel: id, mix: 'B', choice: channel.alwaysOnB },
-				`always_on_enable B ${id}`
+				`always_on_enable B ${id}`,
 			)
 		} else if (key == 'CHAN_NAME') {
 			channel.name = value.trim()
@@ -599,7 +614,11 @@ export default class Dca901Api {
 			}
 			if (id < 10 || id > 17) {
 				// Don't record name changes for direct outs
-				this.instance.recordScmAction('audio_chan_name', { channel: id, name: channel.audioName }, `audio_chan_name ${id}`)
+				this.instance.recordScmAction(
+					'audio_chan_name',
+					{ channel: id, name: channel.audioName },
+					`audio_chan_name ${id}`,
+				)
 			}
 		} else if (key == 'INTELLIMIX_MODE') {
 			channel.intellimixMode = value
@@ -608,7 +627,7 @@ export default class Dca901Api {
 			this.instance.recordScmAction(
 				'intellimix_mode',
 				{ channel: id, choice: channel.intellimixMode },
-				`intellimix_mode ${id}`
+				`intellimix_mode ${id}`,
 			)
 		} else if (key == 'INPUT_AUDIO_GATE_A') {
 			channel.audioGateA = value
@@ -747,7 +766,7 @@ export default class Dca901Api {
 			this.instance.recordScmAction(
 				'dfr_assigned_chan',
 				{ dfr: id, channel: dfr.assignedChan },
-				`dfr_assigned_chan ${id}`
+				`dfr_assigned_chan ${id}`,
 			)
 		} else if (key.match(/_BYPASS/)) {
 			dfr.bypass = value
@@ -847,17 +866,20 @@ export default class Dca901Api {
 		} else if (key == 'METER_RATE_PRECOMP') {
 			this.mixer.meterRatePreComp = parseInt(value)
 			this.instance.setVariableValues({
-				meter_rate_pre_comp: this.mixer.meterRatePreComp.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+				meter_rate_pre_comp:
+					this.mixer.meterRatePreComp.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
 			})
 		} else if (key == 'METER_RATE_POSTGATE') {
 			this.mixer.meterRatePostGate = parseInt(value)
 			this.instance.setVariableValues({
-				meter_rate_post_gate: this.mixer.meterRatePostGate.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+				meter_rate_post_gate:
+					this.mixer.meterRatePostGate.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
 			})
 		} else if (key == 'METER_RATE_MXR_GAIN') {
 			this.mixer.meterRateMixerGain = parseInt(value)
 			this.instance.setVariableValues({
-				meter_rate_mixer_gain: this.mixer.meterRateMixerGain.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
+				meter_rate_mixer_gain:
+					this.mixer.meterRateMixerGain.toString() + (this.instance.config.variableFormat == 'units' ? ' ms' : ''),
 			})
 		} else {
 			this.instance.log('info', `Unhandled mixer command: ${key}`)
