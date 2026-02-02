@@ -24,11 +24,11 @@
 	"keywords": ["Mixer"],
 	"bonjourQueries": {
 		"bonjour_host": {
-				"type": "shure",
-				"protocol": "udp",
-				"txt": {
-					"model": "_000000000000003f"
-				}
+			"type": "shure",
+			"protocol": "udp",
+			"txt": {
+				"model": "_000000000000003f"
+			}
 		}
 	}
 }

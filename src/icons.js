@@ -5,6 +5,7 @@ import Image from './vendor/companion/Image.js'
  * Utilized to generate/recall the icons for realtime monitoring.
  *
  * @since 1.0.0
+ * @author Peter Newman
  * @author Keith Rocheck <keith.rocheck@gmail.com>
  */
 export default class Icons {

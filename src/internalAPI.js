@@ -40,6 +40,7 @@ const DEFAULT_PRESET_LABELS = {
  * Utilized to track the state of the mixer and channels.
  *
  * @since 1.0.0
+ * @author Peter Newman
  * @author Keith Rocheck <keith.rocheck@gmail.com>
  */
 export default class Dca901Api {
