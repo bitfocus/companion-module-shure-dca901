@@ -1,21 +1,16 @@
-import {
-	CreateConvertToBooleanFeedbackUpgradeScript,
-	InstanceBase,
-	Regex,
-	runEntrypoint,
-	TCPHelper,
-} from '@companion-module/base'
+import { InstanceBase, Regex, runEntrypoint, TCPHelper } from '@companion-module/base'
 import { updateActions } from './actions.js'
 import { updateFeedbacks } from './feedback.js'
 import { updateVariables } from './variables.js'
 import Dca901Api from './internalAPI.js'
-import { BooleanFeedbackUpgradeMap } from './upgrades.js'
+import { UpgradeScripts } from './upgrades.js'
 
 /**
  * Companion instance class for the Shure DCA901.
  *
  * @extends InstanceBase
  * @since 1.0.0
+ * @author Peter Newman
  * @author Keith Rocheck <keith.rocheck@gmail.com>
  */
 class ShureDca901Instance extends InstanceBase {
@@ -568,10 +563,10 @@ class ShureDca901Instance extends InstanceBase {
 	 * @since 1.0.0
 	 * @param {boolean} isRecording - the state of the action recorder
 	 */
-
 	handleStartStopRecordActions(isRecording) {
 		this.isRecordingActions = isRecording
 	}
+
 	/**
 	 * Record Action if Action Recorder is engaged
 	 *
@@ -593,4 +588,4 @@ class ShureDca901Instance extends InstanceBase {
 	}
 }
 
-runEntrypoint(ShureDca901Instance, [CreateConvertToBooleanFeedbackUpgradeScript(BooleanFeedbackUpgradeMap)])
+runEntrypoint(ShureDca901Instance, UpgradeScripts)

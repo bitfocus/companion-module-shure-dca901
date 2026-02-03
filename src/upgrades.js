@@ -1,10 +1,11 @@
-export const BooleanFeedbackUpgradeMap = {
-	audio_mute: true,
-	audio_gain: true,
-	/*always_on_enable: true,
-	intellimix_mode: true,
-	dfr_assigned_chan: true,
-	dfr_bypass: true,
-	dfr_freeze: true,
-	auto_link_mode: true,*/
-}
+export const UpgradeScripts = [
+	function (context, props) {
+		// This is a placeholder than now cannot be used/removed
+		// This is padding for anyone that erroneously ran the original upgrade scripts from the previous module
+		return {
+			updatedConfig: null,
+			updatedActions: [],
+			updatedFeedbacks: [],
+		}
+	},
+]
