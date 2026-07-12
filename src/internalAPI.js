@@ -57,10 +57,10 @@ export default class Dca901Api {
 
 		this.mixer = {
 			firmwareVersion: '', // FW_VER
-			deviceId: '', // DEVICE_NAME 31 (GS)
+			deviceId: '', // DEVICE_ID 31 (GS)
 			audioDeviceName: '', // NA_DEVICE_NAME 32 (GS)
 			serialNumber: '', // SERIAL_NUM 31 (GS)
-			flash: 'OFF', // FLASH ON|OFF (S)
+			flash: 'OFF', // FLASH ON|OFF (GS)
 			model: '', // MODEL 32
 			preset: '', // PRESET
 			controlMacAddress: '', // CONTROL_MAC_ADDRESS 17
@@ -79,11 +79,10 @@ export default class Dca901Api {
 			ledColorUnmuted: 'GREEN', // LED_COLOR_UNMUTED
 			ledStateMuted: 'ON', // LED_STATE_MUTED ON|FLASHING|OFF
 			ledStateUnmuted: 'ON', // LED_STATE_UNMUTED ON|FLASHING|OFF
-			muteStatusLedState: 'ON', // DEV_MUTE_STATUS_LED_STATE ON|OFF
 			ledInState: 'ON', // DEV_LED_IN_STATE ON|OFF
 			bypassAllEq: 'OFF', // BYPASS_ALL_EQ
 			eqContour: 'OFF', // EQ_CONTOUR < REP EQ_CONTOUR  > or OFF? // TODO(Peter): Handle a space for a variable
-			numActiveMics: 0, // NUM_ACTIVE_MICS
+			numActiveMics: 0, // NUM_ACTIVE_MICS (G)
 		}
 
 		this.presets = []
@@ -103,7 +102,7 @@ export default class Dca901Api {
 		if (this.presets[id] === undefined) {
 			this.presets[id] = {
 				prefix: `preset_${id}`,
-				name: DEFAULT_PRESET_LABELS[id], // PRESET_NAME 31 (GS)
+				name: DEFAULT_PRESET_LABELS[id], // PRESET_NAME 25 (G)
 			}
 		}
 
@@ -147,7 +146,7 @@ export default class Dca901Api {
 				audioBitmapPreComp: 0, // SAMPLE_PRECOMP 0-60, -60 dB
 				audioBitmapPostGate: 0, // SAMPLE_POSTGATE 0-60, -60 dB
 				audioBitmapMixerGain: 0, // SAMPLE_MXR_GAIN 0-60, -60 dB
-				automixGateOutExtSig: 'OFF', // AUTOMIX_GATE_OUT_EXT_SIG ON|OFF|TOGGLE(?) - Always on
+				automixGateOutExtSig: 'OFF', // AUTOMIX_GATE_OUT_EXT_SIG ON|OFF - Always on
 				beamWidth: 0, // BEAM_W NARROW|MEDIUM|WIDE
 				beamX: 0, // BEAM_X 0-3048, -1524 cm
 				beamY: 0, // BEAM_Y 0-3048, -1524 cm
