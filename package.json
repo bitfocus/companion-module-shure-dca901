@@ -18,7 +18,7 @@
 		"pngjs": "~7.0.0"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "~2.0.0",
+		"@companion-module/tools": "~2.8.0",
 		"prettier": "^3.7.3"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json"
